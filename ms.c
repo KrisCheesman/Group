@@ -404,4 +404,3 @@ GLuint loadBMP(const char *imagepath)
 	free(data);
 	return textureID;
 }
-
