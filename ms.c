@@ -40,7 +40,9 @@ void check_mouse(void);
 void get_grid_center(const int i, const int j, int cent[2]);
 int xres=640;
 int yres=480;
-//
+int size;           //The dimension of the board
+
+
 typedef struct t_grid {
 	int status;
 	int over;
@@ -48,7 +50,7 @@ typedef struct t_grid {
 	struct t_grid *prev;
 	struct t_grid *next;
 } Grid;
-Grid grid[8][8];
+Grid grid[100][100];
 int grid_dim=4;
 int board_dim;
 int qsize;
@@ -61,9 +63,14 @@ GLuint Vtexture;
 GLuint loadBMP(const char *imagepath);
 
 
-int main(void)
+int main(int argc, const char *argv[])
 {
-	if (init_glfw()) {
+    //Prompts user for dimensions
+    printf("Enter the dimensions of the grid. Cap is 40x40.\n");
+    scanf("%i",&size);
+    if(size>40) size = 40;
+	
+    if (init_glfw()) {
 		exit(EXIT_FAILURE);
 	}
 	init_opengl();
@@ -122,7 +129,6 @@ void init_opengl(void)
 	glShadeModel(GL_SMOOTH);
 	glDisable(GL_LIGHTING);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	//
 	glEnable(GL_TEXTURE_2D);
 	Htexture = loadBMP("H.bmp");
 	Vtexture = loadBMP("V.bmp");
@@ -132,16 +138,16 @@ void init_opengl(void)
 
 void init(void)
 {
-	board_dim = yres - 200;
+	board_dim = yres - 150;
 	//make board dim divisible by 4
-	board_dim >>= 2;
-	board_dim <<= 2;
-	int b2 = board_dim/2;
-	int bq, bp;
+    board_dim >>= 2;
+    board_dim <<= 2;
+	int half_board_dim = board_dim/2;
+	int one_grid_sec, bp;
 	//quad upper-left corner
-	//bq is the width of one grid section
-	bq = (board_dim >> 2);
-	qsize = (bq-10) / 2;
+	//one_grid_sec is the width of one grid section
+	one_grid_sec = board_dim/size;
+	qsize = (one_grid_sec-10) / 2;
 	//
 	//notes:
 	//This code is not generic.
@@ -176,13 +182,13 @@ void check_mouse(void)
 	//
 	//is the mouse over any grid squares?
 	//
-	for (i=0; i<4; i++) {
-		for (j=0; j<4; j++) {
+	for (i=0; i<size; i++) {
+		for (j=0; j<size; j++) {
 			grid[i][j].over=0;
 		}
 	}
-	for (i=0; i<4; i++) {
-		for (j=0; j<4; j++) {
+	for (i=0; i<size; i++) {
+		for (j=0; j<size; j++) {
 			get_grid_center(i,j,cent);
 			if (x >= cent[0]-qsize &&
 				x <= cent[0]+qsize &&
@@ -209,8 +215,8 @@ void GLFWCALL mouse_click(int button, int action)
 		glfwGetMousePos(&x, &y);
 		//reverse the y position
 		y = yres - y;
-		for (i=0; i<4; i++) {
-			for (j=0; j<4; j++) {
+		for (i=0; i<size; i++) {
+			for (j=0; j<size; j++) {
 				get_grid_center(i,j,cent);
 				if (x >= cent[0]-qsize &&
 					x <= cent[0]+qsize &&
@@ -218,7 +224,9 @@ void GLFWCALL mouse_click(int button, int action)
 					y <= cent[1]+qsize) {
 					if (button == GLFW_MOUSE_BUTTON_LEFT)  grid[i][j].status=1;
 					if (button == GLFW_MOUSE_BUTTON_RIGHT) grid[i][j].status=2;
-					k=1;
+                    //middle button resets square
+                    if (button == GLFW_MOUSE_BUTTON_MIDDLE) grid[i][j].status=0;
+                    k=1;
 					break;
 				}
 			}
@@ -230,25 +238,25 @@ void GLFWCALL mouse_click(int button, int action)
 void get_grid_center(const int i, const int j, int cent[2])
 {
 	//This function can be optimized, and made more generic.
-	int b2 = board_dim/2;
+	int half_board_dim = board_dim/2;
 	int screen_center[2] = {xres/2, yres/2};
-	int s0 = screen_center[0];
-	int s1 = screen_center[1];
-	int bq, bp;
+	int x_screen_center = screen_center[0];
+	int y_screen_center = screen_center[1];
+	int one_grid_sec, bp;
 	//quad upper-left corner
 	int quad[2];
 	//make board dim divisible by 4
-	board_dim >>= 2;
+    board_dim >>= 2;
 	board_dim <<= 2;
-	//bq is the width of one grid section
-	bq = (board_dim >> 2);
-	//-------------------------------------
-	quad[0] = s0-b2;
-	quad[1] = s1-b2;
-	cent[0] = quad[0] + bq/2;
-	cent[1] = quad[1] + bq/2;
-	cent[0] += (bq * j);
-	cent[1] += (bq * i);
+	//one_grid_sec is the width of one grid section
+	one_grid_sec = board_dim/size;
+    //-------------------------------------
+	quad[0] = x_screen_center-half_board_dim;
+	quad[1] = y_screen_center-half_board_dim;
+	cent[0] = quad[0] + one_grid_sec/2;
+	cent[1] = quad[1] + one_grid_sec/2;
+	cent[0] += (one_grid_sec * j);
+	cent[1] += (one_grid_sec * i);
 }
 
 void render(void)
@@ -257,79 +265,74 @@ void render(void)
 	//--------------------------------------------------------
 	//This code is repeated several times in this program, so
 	//it can be made more generic and cleaner with some work.
-	int b2 = board_dim/2;
+	int half_board_dim = board_dim/2;
 	int screen_center[2] = {xres/2, yres/2};
-	int s0 = screen_center[0];
-	int s1 = screen_center[1];
-	int bq, bp;
+	int x_screen_center = screen_center[0];
+	int y_screen_center = screen_center[1];
+	int one_grid_sec, bp;
 	//quad upper-left corner
 	int quad[2], saveq0;
 	//center of a grid
 	int cent[2];
-	//bq is the width of one grid section
-	bq = (board_dim >> 2);
+	//one_grid_sec is the width of one grid section
+	one_grid_sec = board_dim/size;
 	//--------------------------------------------------------
 	//start the opengl stuff
 	//set the viewing area on screen
 	glViewport(0, 0, xres, yres);
 	//clear color buffer
-	glClearColor(0.1f, 0.2f, 0.3f, 0.0f);
+	//glClearColor(0.1f, 0.2f, 0.3f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	//init matrices
 	glMatrixMode (GL_PROJECTION); glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW); glLoadIdentity();
 	//this sets to 2D mode (no perspective)
 	glOrtho(0, xres, 0, yres, -1, 1);
-	glColor3f(0.8f, 0.6f, 0.2f);
+	glColor3f(1.0f, 0.0f, 0.0f);
 	//draw stuff
 	//draw the main game board in middle of screen
 	glBegin(GL_QUADS);
-		glVertex2i(s0-b2, s1-b2);
-		glVertex2i(s0-b2, s1+b2);
-		glVertex2i(s0+b2, s1+b2);
-		glVertex2i(s0+b2, s1-b2);
+		glVertex2i(x_screen_center-half_board_dim, y_screen_center-half_board_dim);
+		glVertex2i(x_screen_center-half_board_dim, y_screen_center+half_board_dim);
+		glVertex2i(x_screen_center+half_board_dim, y_screen_center+half_board_dim);
+		glVertex2i(x_screen_center+half_board_dim, y_screen_center-half_board_dim);
 	glEnd();
 	//draw grid lines
 	//vertical
-	glColor3i(255, 255, 255);
-	bp = s0-b2;
-	glLineWidth(2);
+	glColor3f(0.0f, 0.0f, 1.0f);
+	bp = x_screen_center-half_board_dim;
+	glLineWidth(3);
 	glBegin(GL_LINES);
-		bp += bq;
-		glVertex2i(bp, s1-b2);
-		glVertex2i(bp, s1+b2);
-		bp += bq;
-		glVertex2i(bp, s1-b2);
-		glVertex2i(bp, s1+b2);
-		bp += bq;
-		glVertex2i(bp, s1-b2);
-		glVertex2i(bp, s1+b2);
+
+    int it;
+    for(it=0;it<(size-1);it++){
+		bp += one_grid_sec;
+		glVertex2i(bp, y_screen_center-half_board_dim);
+		glVertex2i(bp, y_screen_center+half_board_dim);
+    }
+	
 	glEnd();
 	//horizontal
-	glColor3f(0.2f, 0.2f, 0.2f);
-	bp = s1-b2;
+	glColor3f(0.0f, 0.0f, 1.0f);
+	bp = y_screen_center-half_board_dim;
 	glBegin(GL_LINES);
-		bp += bq;
-		glVertex2i(s0-b2, bp);
-		glVertex2i(s0+b2, bp);
-		bp += bq;
-		glVertex2i(s0-b2, bp);
-		glVertex2i(s0+b2, bp);
-		bp += bq;
-		glVertex2i(s0-b2, bp);
-		glVertex2i(s0+b2, bp);
+    for(it=0;it<(size-1);it++){
+		bp += one_grid_sec;
+		glVertex2i(x_screen_center-half_board_dim, bp);
+		glVertex2i(x_screen_center+half_board_dim, bp);
+    }
 	glEnd();
 	glLineWidth(1);
 	//
 	//draw a new square in center of each grid
 	//squares are slightly smaller than grid
 	//
-	for (i=0; i<5; i++) {
-		for (j=0; j<5; j++) {
+	for (i=0; i<size; i++) {
+		for (j=0; j<size; j++) {
 			get_grid_center(i,j,cent);
-			glColor3f(0.5f, 0.1f, 0.1f);
+			glColor3f(0.0f, 1.0f, 1.0f);
 			if (grid[i][j].over) {
-				glColor3f(1.0f, 1.0f, 0.0f);
+				glColor3f(0.0f, 1.0f, 0.0f);
 			}
 			glBindTexture(GL_TEXTURE_2D, 0);
 			if (grid[i][j].status==1) glBindTexture(GL_TEXTURE_2D, Vtexture);
