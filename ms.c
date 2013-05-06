@@ -60,15 +60,19 @@ int rbutton=0;
 //
 GLuint Htexture;
 GLuint Vtexture;
+GLuint Background;
 GLuint loadBMP(const char *imagepath);
 
 
 int main(int argc, const char *argv[])
 {
+    int i, j;
     //Prompts user for dimensions
-    printf("Enter the dimensions of the grid. Cap is 40x40.\n");
-    scanf("%i",&size);
-    if(size>40) size = 40;
+    printf("Game Functions: Press 'r' to reset the grid.\n");
+    printf("Press 'Middle Button' to clear individual grid square.\n");
+    printf("Enter the dimensions of the grid. Cap is 20x20.\n");
+    scanf("%d",&size);
+    if(size>20) size = 20;
 	
     if (init_glfw()) {
 		exit(EXIT_FAILURE);
@@ -80,6 +84,15 @@ int main(int argc, const char *argv[])
 		check_mouse();
 		render();
 		glfwSwapBuffers();
+        if (glfwGetKey('R') == GLFW_PRESS){
+            for (i=0; i<size; i++) {
+                for (j=0; j<size; j++) {
+                    grid[i][j].status = 0;
+                }
+            }
+        }
+                 
+		
 		if (glfwGetKey(GLFW_KEY_ESC) == GLFW_PRESS) break;
 		if (!glfwGetWindowParam(GLFW_OPENED)) break;
 	}
@@ -132,6 +145,7 @@ void init_opengl(void)
 	glEnable(GL_TEXTURE_2D);
 	Htexture = loadBMP("H.bmp");
 	Vtexture = loadBMP("V.bmp");
+    Background = loadBMP("space.bmp");
 	glBindTexture(GL_TEXTURE_2D, 0);
 	printf("tex: %i %i\n",Htexture,Vtexture);
 }
@@ -288,15 +302,26 @@ void render(void)
 	glMatrixMode(GL_MODELVIEW); glLoadIdentity();
 	//this sets to 2D mode (no perspective)
 	glOrtho(0, xres, 0, yres, -1, 1);
-	glColor3f(1.0f, 0.0f, 0.0f);
+	glColor3f(1.0f, 1.0f, 1.0f);
+
+    //Background Texture
+    glBindTexture(GL_TEXTURE_2D,Background);
+    glBegin(GL_QUADS);
+        glTexCoord2f(0.0f,0.0f); glVertex2i(0,0);
+        glTexCoord2f(0.0f,1.0f); glVertex2i(0,yres);
+        glTexCoord2f(1.0f,1.0f); glVertex2i(xres,yres);
+        glTexCoord2f(1.0f,0.0f); glVertex2i(xres,0);
+    glEnd();
+    glBindTexture(GL_TEXTURE_2D,0);
+
 	//draw stuff
 	//draw the main game board in middle of screen
-	glBegin(GL_QUADS);
+	/*glBegin(GL_QUADS);
 		glVertex2i(x_screen_center-half_board_dim, y_screen_center-half_board_dim);
 		glVertex2i(x_screen_center-half_board_dim, y_screen_center+half_board_dim);
 		glVertex2i(x_screen_center+half_board_dim, y_screen_center+half_board_dim);
 		glVertex2i(x_screen_center+half_board_dim, y_screen_center-half_board_dim);
-	glEnd();
+	glEnd();*/
 	//draw grid lines
 	//vertical
 	glColor3f(0.0f, 0.0f, 1.0f);
