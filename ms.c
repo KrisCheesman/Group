@@ -30,7 +30,14 @@
 #include <GL/glfw.h>
 //macros
 #define rnd() (double)rand()/(double)RAND_MAX
-//prototypes
+//Win Functions
+void check_win();
+void h_win();
+void v_win();
+int check_horiz(int, int);
+int check_vert(int, int);
+
+//Prototypes
 void init(void);
 int init_glfw(void);
 void init_opengl(void);
@@ -49,6 +56,8 @@ typedef struct t_grid {
 	float color[4];
 	struct t_grid *prev;
 	struct t_grid *next;
+    int checked;
+    int path;
 } Grid;
 Grid grid[25][25];
 int grid_dim=4;
@@ -88,6 +97,8 @@ int main(int argc, const char *argv[])
             for (i=0; i<size; i++) {
                 for (j=0; j<size; j++) {
                     grid[i][j].status = 0;
+                    grid[i][j].checked = 0;
+                    grid[i][j].path = 0;
                 }
             }
         }
@@ -237,8 +248,14 @@ void GLFWCALL mouse_click(int button, int action)
 					x <= cent[0]+qsize &&
 					y >= cent[1]-qsize &&
 					y <= cent[1]+qsize) {
-					if (button == GLFW_MOUSE_BUTTON_LEFT)  grid[i][j].status=1;
-					if (button == GLFW_MOUSE_BUTTON_RIGHT) grid[i][j].status=2;
+					if (button == GLFW_MOUSE_BUTTON_LEFT){
+                        grid[i][j].status=1;
+                        check_win();
+                    }
+					if (button == GLFW_MOUSE_BUTTON_RIGHT){
+                        grid[i][j].status=2;
+                        check_win();
+                    }
                     //middle button resets square
                     if (button == GLFW_MOUSE_BUTTON_MIDDLE) grid[i][j].status=0;
                     k=1;
@@ -364,6 +381,7 @@ void render(void)
             //Highlights Path
             if (grid[i][j].path){
                 glColor3f(1.0f, 0.0f, 0.0f);
+            }
 			glBindTexture(GL_TEXTURE_2D, 0);
 			if (grid[i][j].status==1) glBindTexture(GL_TEXTURE_2D, Vtexture);
 			if (grid[i][j].status==2) glBindTexture(GL_TEXTURE_2D, Htexture);
@@ -377,6 +395,7 @@ void render(void)
 		}
 	}
 }
+
 
 GLuint loadBMP(const char *imagepath)
 {
@@ -437,3 +456,310 @@ GLuint loadBMP(const char *imagepath)
 	free(data);
 	return textureID;
 }
+
+void check_win(){
+
+    int i = 0, j = 0;
+    // check for horizontal win
+    for (i = 0; i < size; i++){
+        if (grid[i][0].status == 2)
+            check_horiz(i, j);
+    }
+    i=0;
+    // check for vertical win
+    for (j = 0; j < size; j++){
+        if (grid[0][j].status == 1)
+            check_vert(i,j);
+    }
+
+    // clear grid checked flags
+    for (i = 0; i < size; i++){
+        for (j = 0; j < size; j++){
+            grid[i][j].checked = 0;
+        }
+    }
+}
+
+void h_win(){
+    int i, j;
+    for (i = 0; i < size; i++){
+        for (j = 0; j < size; j++){
+            if (grid[i][j].checked == 2)
+                grid[i][j].path= 1;
+        }
+    }
+}
+
+void v_win(){
+    int i, j;
+    for (i = 0; i < size; i++){
+        for (j = 0; j < size; j++){
+            if(grid[i][j].checked == 1)
+                grid[i][j].path = 1;
+        }
+    }
+}
+
+int check_horiz(int i, int j){
+    grid[i][j].checked = 2;
+    int n = size;
+
+    // check right
+    if (j < n){   
+        if (grid[i][j+1].status == 2){
+            //if player H wins,
+            if (j >= n-2){
+               grid[i][j+1].checked = 2;
+               h_win();
+            }
+            //otherwise, keep checking if not checked already
+            if (grid[i][j+1].checked == 0)
+                check_horiz(i, j+1);
+        }
+    }
+
+    //check top right
+    if (i < n && j < n){
+        if (grid[i+1][j+1].status == 2){
+            if (j >= n-2){
+                grid[i+1][j+1].checked = 2;
+                h_win();
+            }
+            if (grid[i+1][j+1].checked == 0)
+                check_horiz(i+1, j+1);
+        }
+    }
+
+    //check bottom right
+    if (i > 0 && j < n){
+        if (grid[i-1][j+1].status == 2){
+            if (j >= n-2){
+                grid[i-1][j+1].checked = 2;
+                h_win();
+            }
+            if (grid[i-1][j+1].checked == 0)
+                check_horiz(i-1, j+1);
+        }
+    }
+
+    //check top
+    if (i < n && j < n){
+        if (grid[i+1][j].status == 2){
+            if (grid[i+1][j].checked == 0)
+                check_horiz(i+1, j); 
+        }
+    }
+
+    // check bottom
+    if (i > 0 && j < n){
+        if (grid[i-1][j].status == 2){
+            if (grid[i-1][j].checked == 0)
+                check_horiz(i-1, j);
+        }
+    }
+
+    //check top left
+    if (i < n && j > 0){
+        if (grid[i+1][j-1].status == 2){
+            if (grid[i+1][j-1].checked == 0)
+                check_horiz(i+1, j-1);
+        }
+    }
+
+    //check left
+    if (j > 0){                            
+        if (grid[i][j-1].status == 2){                                                        
+            if (grid[i][j-1].checked == 0)
+                check_horiz(i, j-1);
+        }                        
+    }
+
+    //check bottom left
+    if (i > 0 &&j > 0){                                                        
+        if (grid[i-1][j-1].status == 2){
+            if (grid[i-1][j-1].checked == 0)
+                check_horiz(i-1, j-1);
+        }                        
+    }
+
+    return 0;
+}
+
+
+int check_vert(int i, int j){
+    grid[i][j].checked = 1;
+    int n = size+1;
+
+    // check right
+    if (j < n){   
+        if (grid[i][j+1].status == 1){
+            //if player H wins,
+            if (j >= n-2){
+               grid[i][j+1].checked = 1;
+               v_win();
+            }
+            //otherwise, keep checking if not checked already
+            if (grid[i][j+1].checked == 0)
+                check_vert(i, j+1);
+        }
+    }
+
+    //check top right
+    if (i < n && j < n){
+        if (grid[i+1][j+1].status == 1){
+            if (j >= n-2){
+                grid[i+1][j+1].checked = 1;
+                v_win();
+            }
+            if (grid[i+1][j+1].checked == 0)
+                check_vert(i+1, j+1);
+        }
+    }
+
+    //check bottom right
+    if (i > 0 && j < n){
+        if (grid[i-1][j+1].status == 1){
+            if (j >= n-2){
+                grid[i-1][j+1].checked = 1;
+                v_win();
+            }
+            if (grid[i-1][j+1].checked == 0)
+                check_vert(i-1, j+1);
+        }
+    }
+
+    //check top
+    if (i < n && j < n){
+        if (grid[i+1][j].status == 1){
+            if (grid[i+1][j].checked == 1)
+                v_win();
+            if (grid[i+1][j].checked == 0)
+                check_vert(i+1, j); 
+        }
+    }
+
+    // check bottom
+    if (i > 0 && j < n){
+        if (grid[i-1][j].status == 1){
+            if (grid[i-1][j].checked == 1)
+                v_win();
+            if (grid[i-1][j].checked == 0)
+                check_vert(i-1, j);
+        }
+    }
+
+    //check top left
+    if (i < n && j > 0){
+        if (grid[i+1][j-1].status == 1){
+            if (grid[i+1][j-1].checked == 1)
+                v_win();
+            if (grid[i+1][j-1].checked == 0)
+                check_vert(i+1, j-1);
+        }
+    }
+
+    //check left
+    if (j > 0){                            
+        if (grid[i][j-1].status == 1){ 
+            if(grid[i][j-1].checked == 1)
+                v_win();
+            if (grid[i][j-1].checked == 0)
+                check_vert(i, j-1);
+        }                        
+    }
+
+    //check bottom left
+    if (i > 0 &&j > 0){                                                        
+        if (grid[i-1][j-1].status == 1){
+            if (grid[i-1][j-1].checked == 1)
+                v_win();
+            if (grid[i-1][j-1].checked == 0)
+                check_vert(i-1, j-1);
+        }                        
+    }
+
+    return 0;
+}
+
+
+/*
+int check_vert(int i, int j){
+    grid[i][j].checked = 1;
+    int n = size; // Max grid size
+    //check top
+    if (i < n && j < n){
+        if (grid[i+1][j].status == 1){
+            if(i >= n-1){
+                grid[i+1][j].checked = 1;
+                v_win();
+            }
+            if (grid[i+1][j].checked == 0)
+                check_vert(i+1, j);
+        }
+    }
+    //check top left
+    if (i < n && j > 0){
+        if (grid[i+1][j-1].status == 1){
+            if(i >= n-1){
+                grid[i+1][j+1].checked=1;                
+                v_win();
+            }
+            if (grid[i+1][j-1].checked == 0)
+                check_vert(i+1, j-1);
+        }
+    }
+    //check top right
+    if (i < n && j < n){
+        if (grid[i+1][j+1].status == 1){
+            if(i >= n-1){
+                grid[i+1][j+1].checked=1;
+                v_win();
+            }
+            if (grid[i+1][j+1].checked == 0)
+                check_vert(i+1, j+1);
+        }
+    }
+    //check bottom
+    if (i > 0){
+        if (grid[i-1][j].status == 1){
+            if(grid[i-1][j].checked == 1)
+
+
+
+            if (grid[i-1][j].checked == 0)
+                check_vert(i-1, j);
+        }
+    }
+    //check bottom left
+    if (i > 0 && j > 0){
+        if (grid[i-1][j-1].status == 1){
+            if (grid[i-1][j-1].checked == 0)
+                check_vert(i-1, j-1);
+        }
+    }
+    //check bottom right
+    if (i < n && j < n){
+        if (grid[i-1][j+1].status == 1){
+            if (grid[i-1][j+1].checked == 0)
+                check_vert(i-1, j+1);
+        }
+    }
+    //check left
+    if (j > 0){
+        if (grid[i][j-1].status == 1){
+            if (grid[i][j-1].checked == 0)
+                check_vert(i, j-1);
+        }
+    }
+    //check right
+    if (j < n){
+        if (grid[i][j+1].status == 1){
+            if (grid[i][j+1].checked == 0)
+                check_vert(i, j+1);
+        }
+    }
+    return 0;
+};
+*/
+
+
