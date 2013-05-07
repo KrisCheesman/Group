@@ -50,7 +50,7 @@ typedef struct t_grid {
 	struct t_grid *prev;
 	struct t_grid *next;
 } Grid;
-Grid grid[100][100];
+Grid grid[25][25];
 int grid_dim=4;
 int board_dim;
 int qsize;
@@ -209,7 +209,8 @@ void check_mouse(void)
 				y >= cent[1]-qsize &&
 				y <= cent[1]+qsize) {
 				grid[i][j].over=1;
-				break;
+				//break;
+                return;
 				//You could do a return here.
 				//If more code is added below, a return
 				//would cause you to exit too early.
@@ -260,8 +261,8 @@ void get_grid_center(const int i, const int j, int cent[2])
 	//quad upper-left corner
 	int quad[2];
 	//make board dim divisible by 4
-    board_dim >>= 2;
-	board_dim <<= 2;
+    //board_dim >>= 2;
+	//board_dim <<= 2;
 	//one_grid_sec is the width of one grid section
 	one_grid_sec = board_dim/size;
     //-------------------------------------
@@ -314,19 +315,20 @@ void render(void)
     glEnd();
     glBindTexture(GL_TEXTURE_2D,0);
 
-	//draw stuff
+	/*draw stuff
 	//draw the main game board in middle of screen
-	/*glBegin(GL_QUADS);
+	glBegin(GL_QUADS);
 		glVertex2i(x_screen_center-half_board_dim, y_screen_center-half_board_dim);
 		glVertex2i(x_screen_center-half_board_dim, y_screen_center+half_board_dim);
 		glVertex2i(x_screen_center+half_board_dim, y_screen_center+half_board_dim);
 		glVertex2i(x_screen_center+half_board_dim, y_screen_center-half_board_dim);
-	glEnd();*/
+	glEnd();
+    */
 	//draw grid lines
 	//vertical
 	glColor3f(0.0f, 0.0f, 1.0f);
 	bp = x_screen_center-half_board_dim;
-	glLineWidth(3);
+	glLineWidth(2);
 	glBegin(GL_LINES);
 
     int it;
@@ -359,6 +361,9 @@ void render(void)
 			if (grid[i][j].over) {
 				glColor3f(0.0f, 1.0f, 0.0f);
 			}
+            //Highlights Path
+            if (grid[i][j].path){
+                glColor3f(1.0f, 0.0f, 0.0f);
 			glBindTexture(GL_TEXTURE_2D, 0);
 			if (grid[i][j].status==1) glBindTexture(GL_TEXTURE_2D, Vtexture);
 			if (grid[i][j].status==2) glBindTexture(GL_TEXTURE_2D, Htexture);
